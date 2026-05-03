@@ -1221,6 +1221,8 @@ function renderTargets(){
 function renderSessionTabs(){
   const sessions=getSessions(curWeek);
   const wrap=document.getElementById('stabs');wrap.innerHTML='';
+  // Auto-select first session if curSess not found
+  if(!sessions.find(s=>s.id===curSess)) curSess=sessions[0]?.id||'';
   sessions.forEach(s=>{
     const b=document.createElement('button');
     b.className='stab'+(s.id===curSess?' active':'');
@@ -1232,7 +1234,9 @@ function renderSessionTabs(){
 
 function renderExercises(){
   const sessions=getSessions(curWeek);
-  const sess=sessions.find(s=>s.id===curSess);
+  let sess=sessions.find(s=>s.id===curSess);
+  if(!sess){curSess=sessions[0]?.id||'';sess=sessions[0];}
+  if(!sess)return;
   const wrap=document.getElementById('exwrap');wrap.innerHTML='';
   let doneCount=0;
 
@@ -1863,11 +1867,24 @@ function toggleSidebar(){document.getElementById('sidebar').classList.toggle('op
 function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('open');}
 function navTo(id){closeSidebar();showPage(id);}
 
+
+function renderAll(){
+  renderWeekScroller();
+  renderPhase();
+  renderTargets();
+  if(document.getElementById('recalib-wrap'))renderRecalibBanner();
+  renderSessionTabs();
+  renderExercises();
+}
+
 curWeek=parseInt(localStorage.getItem('forge_week')||'1');
-applyTranslations();
-document.querySelectorAll('.lang-btn').forEach(b=>b.classList.toggle('active',b.getAttribute('onclick').includes("'"+LANG+"'")));
-if(CFG.name)document.getElementById('logo-sub').textContent=CFG.name.toUpperCase();
-renderWeekScroller();renderPhase();renderTargets();renderRecalibBanner();renderSessionTabs();renderExercises();
+try{applyTranslations();}catch(e){}
+document.querySelectorAll('.lang-btn').forEach(b=>b.classList.toggle('active',b.getAttribute('onclick')&&b.getAttribute('onclick').includes("'"+LANG+"'")));
+if(CFG.name){
+  const ls=document.getElementById('logo-sub');if(ls)ls.textContent=CFG.name.toUpperCase();
+  const sbn=document.getElementById('sb-name');if(sbn)sbn.textContent=CFG.name.toUpperCase();
+}
+renderAll();
 </script>
 </body>
 </html>
