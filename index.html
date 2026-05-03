@@ -1267,6 +1267,26 @@ function renderSessionTabs(){
   });
 }
 
+
+const ALT_EX={
+  bench:['Spinte Manubri Neutri','Panca Manubri presa larga','Chest Press Machine','Push-up con elastico'],
+  incline:['Croci Manubri inclinate','Chest Fly Cable alto','DB Shoulder Press inclinato'],
+  military:['Arnold Press','Shoulder Press Machine','Alzate lat volume alto'],
+  dips:['Tricipiti corda al cavo','Panca stretta manubri','Overhead Extension'],
+  triceps:['Tricipiti manubri sopratesta','Bench Dip','Kickback manubri'],
+  row_bb:['Rematore T-bar','Pulley seduto','Chest Supported Row'],
+  pulldown:['Trazioni assistite','Straight Arm Pulldown','Pulley alto corda'],
+  row_db:['Rematore su panca inclinata','Pulley seduto basso','Row Machine'],
+  bicep:['Curl manubri seduto','Curl al cavo','Hammer Curl'],
+  crunch:['Crunch a terra','Ab Wheel','Hanging Leg Raise'],
+  squat:['Leg Press','Hack Squat','Goblet Squat','Bulgarian Split Squat'],
+  dead:['Stacchi trap bar','Romanian Deadlift','Stacchi da blocchi'],
+  hacksq:['Leg Press piedi alti','Smith Machine Squat'],
+  legpr:['Leg Press unilaterale','Hack Squat','Step-up pesato'],
+  hipth:['Glute Bridge','Cable Pull Through'],
+  legcurl:['Stacchi rumeni','Nordic Curl'],
+};
+
 function renderExercises(){
   const sessions=getSessions(curWeek);
   let sess=sessions.find(s=>s.id===curSess);
