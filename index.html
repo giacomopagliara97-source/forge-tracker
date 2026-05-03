@@ -1720,23 +1720,15 @@ const SPLIT_TEMPLATES={
   ]},
 };
 
-function loadSplit(){try{const s=JSON.parse(localStorage.getItem('forge_split')||'null');if(s)return s;}catch(e){}return JSON.parse(JSON.stringify(SPLIT_TEMPLATES.ppl.days));}
-let customSplit=loadSplit();
-let currentTemplate=localStorage.getItem('forge_split_template')||'ppl';
-
-// Override getSessions to use custom split
-function getSessions(wk){
-  if(!customSplit)return _getSessionsPPL(wk);
-  const wd=WEEKS[wk-1];
-  return customSplit.map(day=>({
-    id:day.name.toLowerCase().replace(/[^a-z0-9]/g,'_').slice(0,12),
-    label:day.name,day:day.day,
-    exercises:day.exercises.map(ex=>{
-      const pct=ex.tag==='bench'?wd.bench[2]:ex.tag==='squat'?wd.squat[2]:ex.tag==='dead'?wd.dead[2]:null;
-      const sKg=pct?Math.round(effectiveRM(ex.tag,wk)*pct/2.5)*2.5:(ex.suggestKg||0);
-      return{id:(ex.tag||ex.name.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,12)),name:ex.name,tag:ex.tag||null,main:!!ex.tag,defaultSets:ex.sets||3,targetReps:ex.reps||'8-10',suggestKg:sKg,rest:ex.rest||(ex.tag?CFG.rest_main:CFG.rest_acc)};
-    })
-  }));
+function loadSplit(){
+  try{
+    const s=JSON.parse(localStorage.getItem('forge_split')||'null');
+    // Validate: must be array of days with exercises array
+    if(s&&Array.isArray(s)&&s.length>0&&Array.isArray(s[0].exercises)&&s[0].exercises.length>0){
+      return s;
+    }
+  }catch(e){}
+  return JSON.parse(JSON.stringify(SPLIT_TEMPLATES.ppl.days_data));
 }
 
 function saveSplit(){const days=customSplit;localStorage.setItem('forge_split',JSON.stringify(days));localStorage.setItem('forge_split_template',currentTemplate);showToast('SPLIT SALVATA ✓');renderSessionTabs();renderExercises();}
@@ -1877,6 +1869,13 @@ function renderAll(){
   renderExercises();
 }
 
+// Clear stale split data from old versions
+try{
+  const savedSplit=JSON.parse(localStorage.getItem('forge_split')||'null');
+  if(savedSplit&&(!Array.isArray(savedSplit)||!savedSplit[0]?.exercises)){
+    localStorage.removeItem('forge_split');
+  }
+}catch(e){localStorage.removeItem('forge_split');}
 curWeek=parseInt(localStorage.getItem('forge_week')||'1');
 try{applyTranslations();}catch(e){}
 document.querySelectorAll('.lang-btn').forEach(b=>b.classList.toggle('active',b.getAttribute('onclick')&&b.getAttribute('onclick').includes("'"+LANG+"'")));
