@@ -967,7 +967,7 @@ const WEEKS=[
 
 function calcKg(lift,pct,week){ return Math.round(effectiveRM(lift,week)*pct/2.5)*2.5; }
 
-function getSessions(wk){
+function _getSessionsPPL(wk){
   const wd=WEEKS[wk-1];
   const bW=calcKg('bench',wd.bench[2],wk);
   const sW=calcKg('squat',wd.squat[2],wk);
@@ -1121,6 +1121,7 @@ function rpeLabel(r){ if(!r)return'—'; if(r<=3)return t('rpe_easy'); if(r<=5)r
 function showPage(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.sb-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
   const idx={log:0,recap:1,stats:2,history:3,split:4,nutrition:5,body:6,settings:7}[id];
   document.querySelectorAll('.nav-tab')[idx].classList.add('active');
@@ -1671,9 +1672,8 @@ let customSplit=loadSplit();
 let currentTemplate=localStorage.getItem('forge_split_template')||'ppl';
 
 // Override getSessions to use custom split
-const _getSessOrig=getSessions;
 function getSessions(wk){
-  if(!customSplit)return _getSessOrig(wk);
+  if(!customSplit)return _getSessionsPPL(wk);
   const wd=WEEKS[wk-1];
   return customSplit.map(day=>({
     id:day.name.toLowerCase().replace(/[^a-z0-9]/g,'_').slice(0,12),
@@ -1743,8 +1743,77 @@ function logPain(){if(!selPainArea){showToast('⚠️ SELEZIONA AREA');return;}c
 function renderPainHistory(){const pains=JSON.parse(localStorage.getItem('forge_pains')||'[]');const wrap=document.getElementById('pain-history');if(!wrap)return;if(!pains.length){wrap.innerHTML='';return;}wrap.innerHTML='<div class="slabel" style="margin-top:4px">Storico dolori</div>'+pains.slice(-5).reverse().map(p=>{const a=PAIN_AREAS.find(x=>x.id===p.area);const d=new Date(p.date).toLocaleDateString('it-IT',{day:'2-digit',month:'short'});return`<div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:.78rem;font-weight:500">${a?.label||p.area}</div><div style="font-family:'DM Mono',monospace;font-size:.54rem;color:var(--muted2)">W${p.week} · ${d}${p.note?' · '+p.note.slice(0,30):''}</div></div><div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:${rpeColor(p.intensity)}">${p.intensity||'—'}</div></div>`;}).join('');}
 
 
+
+// ══ NUTRITION FUNCTIONS ══
+let nutSex='M',nutGoal='bulk';
+function setSex(s,btn){nutSex=s;document.querySelectorAll('#sex-toggle .nt-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
+function setGoal(g,btn){nutGoal=g;document.querySelectorAll('#goal-toggle .nt-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');const cn=document.getElementById('cut-note');if(cn)cn.style.display=g==='cut'?'block':'none';}
+function loadNutritionForm(){try{const d=JSON.parse(localStorage.getItem('forge_nut')||'{}');if(d.age)document.getElementById('n-age').value=d.age;if(d.weight)document.getElementById('n-weight').value=d.weight;if(d.height)document.getElementById('n-height').value=d.height;if(d.bf)document.getElementById('n-bf').value=d.bf;if(d.activity)document.getElementById('n-activity').value=d.activity;if(d.sex){nutSex=d.sex;document.querySelectorAll('#sex-toggle .nt-btn').forEach(b=>b.classList.toggle('active',b.textContent.includes(d.sex==='M'?'Maschio':'Femmina')));}if(d.goal){nutGoal=d.goal;document.querySelectorAll('#goal-toggle .nt-btn').forEach(b=>{if(b.getAttribute('onclick')&&b.getAttribute('onclick').includes("'"+d.goal+"'"))b.classList.add('active');else b.classList.remove('active');});const cn=document.getElementById('cut-note');if(cn)cn.style.display=d.goal==='cut'?'block':'none';}}catch(e){}}
+function calcNutrition(){
+  const age=+document.getElementById('n-age').value,w=+document.getElementById('n-weight').value,h=+document.getElementById('n-height').value;
+  const bf=+document.getElementById('n-bf').value||null,act=+document.getElementById('n-activity').value;
+  if(!age||!w||!h){showToast('⚠️ INSERISCI ETÀ, PESO E ALTEZZA');return;}
+  localStorage.setItem('forge_nut',JSON.stringify({age,weight:w,height:h,bf,activity:act,sex:nutSex,goal:nutGoal}));
+  let bmr=nutSex==='M'?10*w+6.25*h-5*age+5:10*w+6.25*h-5*age-161;
+  let lbm=null;if(bf){lbm=w*(1-bf/100);bmr=370+21.6*lbm;}
+  const tdee=Math.round(bmr*act);
+  const bmi=Math.round(w/((h/100)**2)*10)/10;
+  let bmiLabel='',bmiColor='';
+  if(bmi<18.5){bmiLabel='Sottopeso';bmiColor='var(--blue)';}else if(bmi<25){bmiLabel='Normopeso';bmiColor='var(--acc)';}else if(bmi<30){bmiLabel='Sovrappeso';bmiColor='#ff8c00';}else{bmiLabel='Obesità';bmiColor='var(--acc2)';}
+  const targets={bulk:Math.round(tdee*1.12),cut:Math.round(tdee*0.82),maintain:tdee};
+  const targetCal=targets[nutGoal];
+  const prot=Math.round(w*(nutGoal==='cut'?2.4:nutGoal==='bulk'?2.0:1.8));
+  const fat=Math.round(targetCal*0.25/9);
+  const carb=Math.round((targetCal-prot*4-fat*9)/4);
+  const pC=prot*4,fC=fat*9,cC=carb*4,tot=pC+fC+cC;
+  const res=document.getElementById('nut-results');
+  res.innerHTML=`
+    <div class="slabel" style="margin-top:14px">Composizione corporea</div>
+    <div class="nut-body-grid">
+      <div class="nut-body-cell"><div class="nbc-label">BMI</div><div class="nbc-val" style="color:${bmiColor}">${bmi}</div><div class="nbc-sub">${bmiLabel}</div></div>
+      <div class="nut-body-cell"><div class="nbc-label">Peso</div><div class="nbc-val acc">${w}kg</div><div class="nbc-sub">corporeo</div></div>
+      ${lbm?`<div class="nut-body-cell"><div class="nbc-label">Massa magra</div><div class="nbc-val blue">${Math.round(lbm)}kg</div><div class="nbc-sub">${bf}% grasso</div></div>`:`<div class="nut-body-cell"><div class="nbc-label">BMR</div><div class="nbc-val">${Math.round(bmr)}</div><div class="nbc-sub">kcal/die</div></div>`}
+    </div>
+    <div class="slabel" style="margin-top:14px">TDEE & Target</div>
+    <div class="tdee-card">
+      <div class="tdee-main">${tdee} <span style="font-size:1.2rem">kcal</span></div>
+      <div class="tdee-sub">Fabbisogno calorico giornaliero (TDEE)</div>
+      <div class="tdee-row">
+        <div class="tdee-t bulk"><div class="tt-label">💪 MASSA</div><div class="tt-val">${targets.bulk}</div><div style="font-family:'DM Mono',monospace;font-size:.44rem;color:var(--muted)">+${targets.bulk-tdee} surplus</div></div>
+        <div class="tdee-t maintain"><div class="tt-label">⚖️ MANT.</div><div class="tt-val">${targets.maintain}</div></div>
+        <div class="tdee-t cut"><div class="tt-label">🔥 DEFIN.</div><div class="tt-val">${targets.cut}</div><div style="font-family:'DM Mono',monospace;font-size:.44rem;color:var(--muted)">${targets.cut-tdee} deficit</div></div>
+      </div>
+    </div>
+    <div class="slabel" style="margin-top:14px">Macronutrienti</div>
+    <div class="macro-grid">
+      <div class="macro-cell"><div class="mc-label">Proteine</div><div class="mc-val acc">${prot}g</div><div class="mc-sub">${pC}kcal · ${Math.round(prot/w*10)/10}g/kg</div></div>
+      <div class="macro-cell"><div class="mc-label">Carboidrati</div><div class="mc-val blue">${carb}g</div><div class="mc-sub">${cC}kcal</div></div>
+      <div class="macro-cell"><div class="mc-label">Grassi</div><div class="mc-val" style="color:#ff8c00">${fat}g</div><div class="mc-sub">${fC}kcal</div></div>
+    </div>
+    <div class="mbar-wrap">
+      <div class="mbar-row"><div class="mbar-top"><span>Proteine</span><span>${Math.round(pC/tot*100)}%</span></div><div class="mbar"><div class="mbar-fill" style="width:${Math.round(pC/tot*100)}%;background:var(--acc)"></div></div></div>
+      <div class="mbar-row"><div class="mbar-top"><span>Carboidrati</span><span>${Math.round(cC/tot*100)}%</span></div><div class="mbar"><div class="mbar-fill" style="width:${Math.round(cC/tot*100)}%;background:var(--blue)"></div></div></div>
+      <div class="mbar-row"><div class="mbar-top"><span>Grassi</span><span>${Math.round(fC/tot*100)}%</span></div><div class="mbar"><div class="mbar-fill" style="width:${Math.round(fC/tot*100)}%;background:#ff8c00"></div></div></div>
+    </div>
+    <div class="slabel">Consigli alimentari</div>
+    <div class="adv-card"><div class="adv-title">${nutGoal==='bulk'?'💪 Per la massa':nutGoal==='cut'?'🔥 Per la definizione':'⚖️ Per il mantenimento'}</div>
+    <ul class="adv-list">
+      ${(nutGoal==='bulk'?['Cibi integrali: riso, avena, pasta integrale','Pre-workout: 40-60g carb + 20g prot 1-2h prima','Post-workout: 50-80g carb + 30-40g prot entro 1h','Grassi sani: olio EVO, avocado, noci, salmone','Creatina 3-5g/die','Sonno 7-9h']:
+         nutGoal==='cut'?['Proteine ALTE (2.2-2.5g/kg) per preservare la massa','Carb ridotti la sera e nei giorni di riposo','Non scendere sotto 1500kcal/die','Verdure abbondanti: fibra e sazietà senza calorie','Continua il programma forza con intensità invariata']:
+         ['Distribuisci 25-40g proteine per pasto','Carb complessi come fonte principale di energia','Monitora il peso settimanalmente','Aggiusta le calorie in base al trend']).map(a=>`<li>${a}</li>`).join('')}
+    </ul></div>
+  `;
+  res.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+
 // BOOT
 // ══════════════════════════════════════════
+
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sidebar-overlay').classList.toggle('open');}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('open');}
+function navTo(id){closeSidebar();showPage(id);}
+
 curWeek=parseInt(localStorage.getItem('forge_week')||'1');
 applyTranslations();
 document.querySelectorAll('.lang-btn').forEach(b=>b.classList.toggle('active',b.getAttribute('onclick').includes("'"+LANG+"'")));
