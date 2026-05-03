@@ -1043,6 +1043,41 @@ function _getSessionsPPL(wk){
   ];
 }
 
+function getSessions(wk){
+  const savedSplit = localStorage.getItem('forge_split');
+  let split = null;
+  try {
+    const parsed = JSON.parse(savedSplit || 'null');
+    if(parsed && Array.isArray(parsed) && parsed.length > 0 && Array.isArray(parsed[0].exercises) && parsed[0].exercises.length > 0){
+      split = parsed;
+    }
+  } catch(e){}
+  
+  if(!split) return _getSessionsPPL(wk);
+  
+  const wd = WEEKS[wk-1];
+  return split.map(day => ({
+    id: day.name.toLowerCase().replace(/[^a-z0-9]/g,'_').slice(0,12),
+    label: day.name,
+    day: day.day,
+    exercises: day.exercises.map(ex => {
+      const pct = ex.tag==='bench' ? wd.bench[2] : ex.tag==='squat' ? wd.squat[2] : ex.tag==='dead' ? wd.dead[2] : null;
+      const sKg = pct ? Math.round(effectiveRM(ex.tag,wk)*pct/2.5)*2.5 : (ex.suggestKg||0);
+      return {
+        id: (ex.tag || ex.name.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,12)),
+        name: ex.name,
+        tag: ex.tag||null,
+        main: !!ex.tag,
+        defaultSets: ex.sets||3,
+        targetReps: ex.reps||'8-10',
+        suggestKg: sKg,
+        rest: ex.rest||(ex.tag?CFG.rest_main:CFG.rest_acc)
+      };
+    })
+  }));
+}
+
+
 // ══════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════
