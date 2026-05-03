@@ -410,11 +410,14 @@ canvas{width:100%!important}
 </div>
 
 <div id="nav">
-  <button class="nav-tab active" onclick="showPage('log')" data-i="nav_log">📋 LOG</button>
-  <button class="nav-tab" onclick="showPage('recap')" data-i="nav_recap">🔥 RECAP</button>
-  <button class="nav-tab" onclick="showPage('stats')" data-i="nav_stats">📈 STATS</button>
-  <button class="nav-tab" onclick="showPage('history')" data-i="nav_hist">📅 STORICO</button>
-  <button class="nav-tab" onclick="showPage('settings')" data-i="nav_set">⚙️ SET</button>
+  <button class="nav-tab active" onclick="showPage('log')">📋 LOG</button>
+  <button class="nav-tab" onclick="showPage('recap')">🔥 RECAP</button>
+  <button class="nav-tab" onclick="showPage('stats')">📈 STATS</button>
+  <button class="nav-tab" onclick="showPage('history')">📅 STORICO</button>
+  <button class="nav-tab" onclick="showPage('split')">📝 SPLIT</button>
+  <button class="nav-tab" onclick="showPage('nutrition')">🥗 NUT</button>
+  <button class="nav-tab" onclick="showPage('body')">📸 BODY</button>
+  <button class="nav-tab" onclick="showPage('settings')">⚙️ SET</button>
 </div>
 
 <div id="pw">
@@ -1119,7 +1122,7 @@ function showPage(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
-  const idx={log:0,recap:1,stats:2,history:3,settings:4}[id];
+  const idx={log:0,recap:1,stats:2,history:3,split:4,nutrition:5,body:6,settings:7}[id];
   document.querySelectorAll('.nav-tab')[idx].classList.add('active');
   if(id==='recap')renderRecap();
   if(id==='stats')renderStats();
