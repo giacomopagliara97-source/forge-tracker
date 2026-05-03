@@ -634,6 +634,14 @@ canvas{width:100%!important}
   <button class="reset-btn" onclick="resetSplit()">Ripristina Push / Pull / Legs</button>
 </div>
 
+
+<!-- PROGRAMMA -->
+<div id="page-program" class="page">
+  <div class="page-title-bar"><div class="page-title-icon">🗓</div><div class="page-title">IL TUO PROGRAMMA</div></div>
+  <div class="slabel">Piano settimana per settimana</div>
+  <div id="program-preview"></div>
+</div>
+
 <div id="page-nutrition" class="page">
   <div class="slabel">Profilo fisico</div>
   <div class="nut-card">
@@ -682,7 +690,7 @@ canvas{width:100%!important}
     <div id="cut-note" style="display:none;background:rgba(255,68,0,.08);border:1px solid rgba(255,68,0,.25);border-radius:3px;padding:10px;margin-top:8px;font-family:'DM Mono',monospace;font-size:.6rem;color:#ff8c00;line-height:1.6">🔥 <strong>DEFINIZIONE + FORZA:</strong> Mantieni alta la proteina (2.2-2.5g/kg). Continua il programma con volume -10-15% ma intensità alta.</div>
     <button class="nut-calc-btn" onclick="calcNutrition()">CALCOLA TDEE &amp; MACROS →</button>
   </div>
-  <div id="nut-results" style="display:none"></div>
+  <div id="nut-results"></div>
 </div>
 
 <!-- BODY PAGE -->
@@ -968,7 +976,7 @@ function applyTranslations(){
 // ══════════════════════════════════════════
 // SETTINGS & DEFAULTS
 // ══════════════════════════════════════════
-const DEFAULTS={bench_start:110,squat_start:130,dead_start:130,bench_target:150,squat_target:180,dead_target:200,rest_main:180,rest_acc:90,name:''};
+const DEFAULTS={bench_start:110,squat_start:130,dead_start:130,bench_target:150,squat_target:180,dead_target:200,rest_main:180,rest_acc:90,name:'',totalWeeks:16};
 
 function loadCFG(){ try{return Object.assign({},DEFAULTS,JSON.parse(localStorage.getItem('forge_set')||'{}'));}catch(e){return{...DEFAULTS};} }
 function saveCFG(c){ localStorage.setItem('forge_set',JSON.stringify(c)); }
@@ -976,6 +984,7 @@ function saveCFG(c){ localStorage.setItem('forge_set',JSON.stringify(c)); }
 let CFG=loadCFG();
 let STARTING={bench:CFG.bench_start,squat:CFG.squat_start,dead:CFG.dead_start};
 let TARGETS={bench:CFG.bench_target,squat:CFG.squat_target,dead:CFG.dead_target};
+let totalWeeks=CFG.totalWeeks||16;
 
 // MID-PROGRAM OVERRIDES: {bench:{week:N, kg:X}, squat:..., dead:...}
 let OVERRIDES = (()=>{ try{return JSON.parse(localStorage.getItem('forge_overrides')||'{}');}catch(e){return{};} })();
@@ -1215,6 +1224,7 @@ function showPage(id){
   if(id==='settings')renderSettingsPage();
   if(id==='nutrition'){loadNutritionForm();}
   if(id==='split'){renderSplitPage();}
+  if(id==='program'){renderProgramPreview();}
   if(id==='body'){renderPainAreas();renderPainIntensity();renderPartnerLog();renderPainHistory();renderPhotos();}
 }
 
@@ -1914,6 +1924,33 @@ function toggleSidebar(){document.getElementById('sidebar').classList.toggle('op
 function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('open');}
 function navTo(id){closeSidebar();showPage(id);}
 
+
+
+function renderProgramPreview(){
+  const wrap=document.getElementById('program-preview');
+  if(!wrap)return;
+  const phaseColors={hypertrophy:'var(--acc)',strength:'var(--blue)',peak:'var(--acc2)',deload:'var(--muted)'};
+  const phaseNames={hypertrophy:'Ipertrofia',strength:'Forza',peak:'Peaking',deload:'Deload'};
+  let html='<div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">';
+  for(let w=1;w<=totalWeeks;w++){
+    const wd=WEEKS[w-1];
+    const bW=Math.round(effectiveRM('bench',w)*wd.bench[2]/2.5)*2.5;
+    const sW=Math.round(effectiveRM('squat',w)*wd.squat[2]/2.5)*2.5;
+    const dW=Math.round(effectiveRM('dead',w)*wd.dead[2]/2.5)*2.5;
+    const isCurrentWeek=w===curWeek;
+    html+=`<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border)22;${isCurrentWeek?'background:rgba(212,255,0,.05);border-left:3px solid var(--acc);':''}">
+      <span style="font-family:'DM Mono',monospace;font-size:.6rem;color:${isCurrentWeek?'var(--acc)':'var(--muted)'};width:28px;flex-shrink:0;font-weight:${isCurrentWeek?'700':'400'}">W${w}</span>
+      <span style="font-family:'DM Mono',monospace;font-size:.58rem;color:${phaseColors[wd.phase]};width:80px;flex-shrink:0">${phaseNames[wd.phase]}</span>
+      <span style="font-family:'DM Mono',monospace;font-size:.55rem;color:var(--muted2);flex:1">
+        <span style="color:var(--acc)">${wd.bench[0]}×${wd.bench[1]} @${bW}kg</span> &nbsp;
+        <span style="color:var(--blue)">${wd.squat[0]}×${wd.squat[1]} @${sW}kg</span> &nbsp;
+        <span style="color:var(--acc2)">${wd.dead[0]}×${wd.dead[1]} @${dW}kg</span>
+      </span>
+    </div>`;
+  }
+  html+='</div>';
+  wrap.innerHTML=html;
+}
 
 function renderAll(){
   renderWeekScroller();
